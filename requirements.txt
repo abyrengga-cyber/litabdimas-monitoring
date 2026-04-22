@@ -1,0 +1,7 @@
+Django
+crispy-bootstrap5
+django-bootstrap5
+django-crispy-forms
+asgiref
+sqlparse
+tzdata
