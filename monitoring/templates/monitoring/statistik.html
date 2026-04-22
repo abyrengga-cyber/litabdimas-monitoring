@@ -1,0 +1,175 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Statistik LITABDIMAS{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="mb-4">
+        <h2 class="mb-0">Statistik LITABDIMAS</h2>
+        <p class="text-muted mb-0">Ringkasan data kegiatan {% if user.role == 'dosen' %}Anda{% else %}seluruh civitas{% endif %}.</p>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="glass-card stat-card text-center">
+                <div class="stat-icon bg-primary-light"><i class="fas fa-layer-group fa-2x text-primary"></i></div>
+                <h3 class="fw-bold mt-3 mb-0">{{ total }}</h3>
+                <small class="text-muted">Total Usulan</small>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="glass-card stat-card text-center">
+                <div class="stat-icon bg-success-light"><i class="fas fa-check-circle fa-2x text-success"></i></div>
+                <h3 class="fw-bold mt-3 mb-0">{{ by_status.approved }}</h3>
+                <small class="text-muted">Disetujui</small>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="glass-card stat-card text-center">
+                <div class="stat-icon bg-warning-light"><i class="fas fa-clock fa-2x text-warning"></i></div>
+                <h3 class="fw-bold mt-3 mb-0">{{ by_status.pending_kaprodi|add:by_status.pending_dekan }}</h3>
+                <small class="text-muted">Dalam Proses</small>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="glass-card stat-card text-center">
+                <div class="stat-icon bg-info-light"><i class="fas fa-wallet fa-2x text-info"></i></div>
+                <h3 class="fw-bold mt-3 mb-0" style="font-size:1.3rem;">Rp {{ serapan_dana|floatformat:0|intcomma }}</h3>
+                <small class="text-muted">Serapan Dana</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Status Breakdown -->
+        <div class="col-lg-6">
+            <div class="glass-card p-4 h-100">
+                <h5 class="fw-bold mb-4">Distribusi Status</h5>
+                <canvas id="statusChart" height="220"></canvas>
+                <div class="mt-4">
+                    {% for key, label in status_labels.items %}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge rounded-pill" style="background:{{ status_colors|dictsort:key }};">{{ label }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    <table class="table table-sm mt-2">
+                        <tbody>
+                            <tr><td><span class="badge bg-secondary">Draft</span></td><td class="text-end fw-bold">{{ by_status.draft }}</td></tr>
+                            <tr><td><span class="badge bg-warning text-dark">Menunggu Kaprodi</span></td><td class="text-end fw-bold">{{ by_status.pending_kaprodi }}</td></tr>
+                            <tr><td><span class="badge bg-warning text-dark">Menunggu Dekan</span></td><td class="text-end fw-bold">{{ by_status.pending_dekan }}</td></tr>
+                            <tr><td><span class="badge bg-success">Disetujui</span></td><td class="text-end fw-bold">{{ by_status.approved }}</td></tr>
+                            <tr><td><span class="badge bg-danger">Revisi</span></td><td class="text-end fw-bold">{{ by_status.revision }}</td></tr>
+                            <tr><td><span class="badge bg-dark">Ditolak</span></td><td class="text-end fw-bold">{{ by_status.rejected }}</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Category Breakdown -->
+        <div class="col-lg-6">
+            <div class="glass-card p-4 h-100">
+                <h5 class="fw-bold mb-4">Distribusi Kategori</h5>
+                <canvas id="categoryChart" height="220"></canvas>
+                <div class="mt-4">
+                    <table class="table table-sm">
+                        <tbody>
+                            <tr>
+                                <td><i class="fas fa-flask text-primary me-2"></i>Penelitian</td>
+                                <td class="text-end fw-bold">{{ by_category.penelitian }}</td>
+                                <td class="text-end text-muted small">
+                                    {% if total %}{% widthratio by_category.penelitian total 100 %}%{% else %}0%{% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><i class="fas fa-hands-helping text-success me-2"></i>Pengabdian Masyarakat</td>
+                                <td class="text-end fw-bold">{{ by_category.pengabdian }}</td>
+                                <td class="text-end text-muted small">
+                                    {% if total %}{% widthratio by_category.pengabdian total 100 %}%{% else %}0%{% endif %}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .stat-icon {
+        width: 60px; height: 60px;
+        border-radius: 14px;
+        display: flex; align-items: center; justify-content: center;
+        margin: 0 auto;
+    }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Status doughnut chart
+    new Chart(document.getElementById('statusChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Draft', 'Menunggu Kaprodi', 'Menunggu Dekan', 'Disetujui', 'Revisi', 'Ditolak'],
+            datasets: [{
+                data: [
+                    {{ by_status.draft }},
+                    {{ by_status.pending_kaprodi }},
+                    {{ by_status.pending_dekan }},
+                    {{ by_status.approved }},
+                    {{ by_status.revision }},
+                    {{ by_status.rejected }}
+                ],
+                backgroundColor: ['#6c757d','#ffc107','#fd7e14','#198754','#dc3545','#212529'],
+                borderWidth: 2,
+                borderColor: '#fff',
+            }]
+        },
+        options: {
+            cutout: '65%',
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 12, font: { size: 12 },
+                        color: 'rgba(200,230,230,0.6)'
+                    }
+                }
+            }
+        }
+    });
+
+    // Category bar chart
+    new Chart(document.getElementById('categoryChart'), {
+        type: 'bar',
+        data: {
+            labels: ['Penelitian', 'Pengabdian Masyarakat'],
+            datasets: [{
+                label: 'Jumlah',
+                data: [{{ by_category.penelitian }}, {{ by_category.pengabdian }}],
+                backgroundColor: ['rgba(0,180,180,0.65)', 'rgba(0,212,170,0.65)'],
+                borderRadius: 8,
+                borderWidth: 0,
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            plugins: { legend: { display: false } },
+            scales: {
+                x: {
+                    beginAtZero: true, ticks: { stepSize: 1, color: 'rgba(200,230,230,0.5)' },
+                    grid: { color: 'rgba(0,128,128,0.12)' }
+                },
+                y: { grid: { display: false }, ticks: { color: 'rgba(200,230,230,0.6)' } }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

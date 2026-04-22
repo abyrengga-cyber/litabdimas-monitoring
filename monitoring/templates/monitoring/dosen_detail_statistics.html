@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Detail Statistik | {{ dosen.get_full_name|default:dosen.username }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-0">Evaluasi Portfolio: {{ dosen.get_full_name|default:dosen.username }}</h2>
+            <p class="text-muted mb-0">NIDN: {{ dosen.nidn|default:"-" }} &mdash; Program Studi: {{ dosen.prodi|default:"-" }}</p>
+        </div>
+        <div>
+            <a href="{% url 'statistik' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i> Kembali ke Statistik
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary Widgets -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="glass-card stat-card text-center d-flex flex-column justify-content-center">
+                <div class="mb-3 d-inline-flex justify-content-center align-items-center rounded-circle mx-auto" style="width: 60px; height: 60px; background-color: rgba(13, 110, 253, 0.1);">
+                    <i class="fas fa-folder-open fa-2x text-primary"></i>
+                </div>
+                <h3 class="fw-bold mb-1">{{ total_usulan }}</h3>
+                <small class="text-muted fw-semibold">Total Usulan</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="glass-card stat-card text-center d-flex flex-column justify-content-center">
+                <div class="mb-3 d-inline-flex justify-content-center align-items-center rounded-circle mx-auto" style="width: 60px; height: 60px; background-color: rgba(25, 135, 84, 0.1);">
+                    <i class="fas fa-flask fa-2x text-success"></i>
+                </div>
+                <h3 class="fw-bold mb-1">{{ total_penelitian }}</h3>
+                <small class="text-muted fw-semibold">Penelitian</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="glass-card stat-card text-center d-flex flex-column justify-content-center">
+                <div class="mb-3 d-inline-flex justify-content-center align-items-center rounded-circle mx-auto" style="width: 60px; height: 60px; background-color: rgba(255, 193, 7, 0.1);">
+                    <i class="fas fa-users text-warning fa-2x"></i>
+                </div>
+                <h3 class="fw-bold mb-1">{{ total_pengabdian }}</h3>
+                <small class="text-muted fw-semibold">Pengabdian</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="glass-card stat-card text-center d-flex flex-column justify-content-center">
+                <div class="mb-3 d-inline-flex justify-content-center align-items-center rounded-circle mx-auto" style="width: 60px; height: 60px; background-color: rgba(220, 53, 69, 0.1);">
+                    <i class="fas fa-coins text-danger fa-2x"></i>
+                </div>
+                <h3 class="fw-bold text-dark fs-4 mb-1">Rp {{ serapan_dana|intcomma }}</h3>
+                <small class="text-muted fw-semibold flex-wrap">Dana Disetujui</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Activities List -->
+    <div class="glass-card p-4">
+        <h5 class="fw-bold mb-4">Daftar Kegiatan Dosen</h5>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th width="5%">No</th>
+                        <th width="35%">Judul Kegiatan</th>
+                        <th width="15%">Kategori</th>
+                        <th width="15%" class="text-end">Dana (Rp)</th>
+                        <th width="15%" class="text-center">Status</th>
+                        <th width="15%" class="text-end">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for act in activities %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>
+                            <div class="fw-bold">{{ act.title }}</div>
+                            <small class="text-muted">Diperbarui: {{ act.updated_at|date:"d M Y" }}</small>
+                        </td>
+                        <td>
+                            {% if act.category == 'penelitian' %}
+                            <span class="badge bg-primary text-white"><i class="fas fa-flask me-1"></i> Penelitian</span>
+                            {% else %}
+                            <span class="badge bg-warning text-dark"><i class="fas fa-users me-1"></i> Pengabdian</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end fw-semibold">{{ act.dana|intcomma }}</td>
+                        <td class="text-center">
+                            {% if act.status == 'approved' %}
+                                <span class="badge bg-success">Disetujui</span>
+                            {% elif act.status == 'rejected' %}
+                                <span class="badge bg-dark">Ditolak</span>
+                            {% elif act.status == 'revision' %}
+                                <span class="badge bg-danger">Revisi</span>
+                            {% elif 'pending' in act.status %}
+                                <span class="badge bg-warning text-dark">Review</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Draft</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="{% url 'activity_detail' act.id %}" class="btn btn-sm btn-outline-primary" title="Lihat Detail">
+                                <i class="fas fa-eye"></i> Detail
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-5">
+                            <i class="fas fa-folder-open fa-3x mb-3 d-block opacity-25"></i>
+                            Dosen ini belum memiliki riwayat usulan LITABDIMAS.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

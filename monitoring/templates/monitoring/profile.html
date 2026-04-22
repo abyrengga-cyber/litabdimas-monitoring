@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Profil Saya{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="mb-4">
+        <h2 class="mb-0">Profil Saya</h2>
+        <p class="text-muted mb-0">Kelola informasi akun dan data kepegawaian Anda.</p>
+    </div>
+
+    <div class="row g-4 justify-content-center">
+        <!-- Avatar & Info Singkat -->
+        <div class="col-lg-4">
+            <div class="glass-card p-4 text-center">
+                <div class="avatar-circle mx-auto mb-3">
+                    {{ user.username|first|upper }}
+                </div>
+                <h5 class="fw-bold mb-1">{{ user.get_full_name|default:user.username }}</h5>
+                <span class="badge bg-primary px-3 py-2 mb-3">{{ user.get_role_display }}</span>
+                <hr>
+                <div class="text-start small">
+                    <div class="mb-2 d-flex align-items-center gap-2">
+                        <i class="fas fa-user text-muted" style="width:18px;"></i>
+                        <span>{{ user.username }}</span>
+                    </div>
+                    {% if user.nidn %}
+                    <div class="mb-2 d-flex align-items-center gap-2">
+                        <i class="fas fa-id-card text-muted" style="width:18px;"></i>
+                        <span>NIDN: {{ user.nidn }}</span>
+                    </div>
+                    {% endif %}
+                    {% if user.phone %}
+                    <div class="mb-2 d-flex align-items-center gap-2">
+                        <i class="fas fa-phone text-muted" style="width:18px;"></i>
+                        <span>{{ user.phone }}</span>
+                    </div>
+                    {% endif %}
+                    {% if user.prodi %}
+                    <div class="mb-2 d-flex align-items-center gap-2">
+                        <i class="fas fa-graduation-cap text-muted" style="width:18px;"></i>
+                        <span>{{ user.prodi }}</span>
+                    </div>
+                    {% endif %}
+                    {% if user.fakultas %}
+                    <div class="mb-2 d-flex align-items-center gap-2">
+                        <i class="fas fa-university text-muted" style="width:18px;"></i>
+                        <span>{{ user.fakultas }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+                <hr>
+                <div class="text-muted small">
+                    <i class="fas fa-calendar me-1"></i> Bergabung {{ user.date_joined|date:"M Y" }}
+                </div>
+            </div>
+
+            <!-- Statistik singkat untuk dosen -->
+            {% if user.role == 'dosen' %}
+            <div class="glass-card p-3 mt-3">
+                <h6 class="fw-bold mb-3 small text-muted text-uppercase">Ringkasan Kegiatan</h6>
+                <div class="row text-center g-2">
+                    <div class="col-4">
+                        <div class="fw-bold fs-5">{{ user.activities.count }}</div>
+                        <div class="extra-small text-muted">Total</div>
+                    </div>
+                    <div class="col-4">
+                        <div class="fw-bold fs-5 text-success">{{ user.activities.filter_approved }}</div>
+                        <div class="extra-small text-muted">Disetujui</div>
+                    </div>
+                    <div class="col-4">
+                        <div class="fw-bold fs-5 text-warning">{{ user.activities.filter_pending }}</div>
+                        <div class="extra-small text-muted">Proses</div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Form Edit -->
+        <div class="col-lg-8">
+            <div class="glass-card p-4">
+                <h5 class="fw-bold mb-4"><i class="fas fa-edit me-2 text-primary"></i>Edit Profil</h5>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <div class="col-md-6">{{ form.first_name|as_crispy_field }}</div>
+                        <div class="col-md-6">{{ form.last_name|as_crispy_field }}</div>
+                        <div class="col-md-6">{{ form.nidn|as_crispy_field }}</div>
+                        <div class="col-md-6">{{ form.phone|as_crispy_field }}</div>
+                        <div class="col-md-6">{{ form.prodi|as_crispy_field }}</div>
+                        <div class="col-md-6">{{ form.fakultas|as_crispy_field }}</div>
+                    </div>
+                    <hr class="my-4">
+                    <div class="d-flex justify-content-end">
+                        <button type="submit" class="btn btn-primary px-5">
+                            <i class="fas fa-save me-2"></i>Simpan Perubahan
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Informasi Akun (read-only) -->
+            <div class="glass-card p-4 mt-3">
+                <h6 class="fw-bold mb-3 text-muted text-uppercase" style="font-size:.75rem;letter-spacing:.05em;">Informasi Akun</h6>
+                <div class="row g-2 small">
+                    <div class="col-md-4 text-muted">Username</div>
+                    <div class="col-md-8 fw-semibold">{{ user.username }}</div>
+                    <div class="col-md-4 text-muted">Role</div>
+                    <div class="col-md-8"><span class="badge bg-primary">{{ user.get_role_display }}</span></div>
+                    <div class="col-md-4 text-muted">Email</div>
+                    <div class="col-md-8">{{ user.email|default:"—" }}</div>
+                </div>
+                <div class="mt-3">
+                    <small class="text-muted"><i class="fas fa-info-circle me-1"></i>Untuk mengubah username, email, atau password, hubungi administrator.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .avatar-circle {
+        width: 80px; height: 80px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--tosca), var(--tosca-dark));
+        display: flex; align-items: center; justify-content: center;
+        font-size: 2rem; font-weight: 700; color: white;
+        box-shadow: 0 6px 20px rgba(0,128,128,0.45);
+    }
+    .extra-small { font-size: .72rem; }
+    hr { border-color: rgba(0,128,128,0.15) !important; }
+</style>
+{% endblock %}

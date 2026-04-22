@@ -1,0 +1,277 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Detail Kegiatan | {{ activity.title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-0">{{ activity.title }}</h2>
+            <p class="text-muted mb-0">ID Kegiatan: #{{ activity.id }} &mdash; Diajukan oleh: <strong>{{ activity.dosen.get_full_name|default:activity.dosen.username }}</strong></p>
+        </div>
+        <div class="d-flex gap-2">
+            {% if can_edit %}
+            <a href="{% url 'activity_edit' activity.id %}" class="btn btn-warning">
+                <i class="fas fa-edit me-2"></i>Edit / Revisi
+            </a>
+            {% endif %}
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i> Kembali
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Main Details -->
+        <div class="col-lg-8">
+            <div class="glass-card p-4 mb-4">
+                <h5 class="fw-bold mb-4">Informasi Kegiatan</h5>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <small class="text-muted d-block text-uppercase fw-semibold" style="font-size:0.7rem;letter-spacing:.05em;">Kategori</small>
+                        <span class="fw-bold">{{ activity.get_category_display }}</span>
+                    </div>
+                    <div class="col-md-6">
+                        <small class="text-muted d-block text-uppercase fw-semibold" style="font-size:0.7rem;letter-spacing:.05em;">Dana Usulan</small>
+                        <span class="fw-bold text-primary fs-5">Rp {{ activity.dana|floatformat:0|intcomma }}</span>
+                    </div>
+                    <div class="col-md-12">
+                        <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size:0.7rem;letter-spacing:.05em;">Deskripsi</small>
+                        <p class="mb-0">{{ activity.description }}</p>
+                    </div>
+                    <div class="col-md-12">
+                        {% if activity.proposal_file %}
+                        <div class="p-3 rounded-3 d-flex align-items-center justify-content-between" style="background:rgba(0,128,128,0.08);border:1px solid rgba(0,128,128,0.2);">
+                            <div class="d-flex align-items-center gap-3" style="min-width: 0;">
+                                <i class="fas fa-file-pdf fa-2x text-danger"></i>
+                                <div class="text-truncate">
+                                    <h6 class="mb-0 fw-bold text-truncate" title="{{ activity.proposal_file.name|cut:'proposals/' }}">
+                                        {{ activity.proposal_file.name|cut:"proposals/"|truncatechars:40 }}
+                                    </h6>
+                                    <small class="text-muted">Dokumen Proposal PDF</small>
+                                </div>
+                            </div>
+                            <a href="{{ activity.proposal_file.url }}" class="btn btn-primary btn-sm" target="_blank">
+                                <i class="fas fa-download me-1"></i> Unduh
+                            </a>
+                        </div>
+                        {% else %}
+                        <div class="p-3 rounded-3 text-muted small" style="background:rgba(255,255,255,0.04);border:1px solid rgba(0,128,128,0.15);">
+                            <i class="fas fa-exclamation-circle me-2"></i> Tidak ada file proposal.
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Review History -->
+            {% if reviews %}
+            <div class="glass-card p-4">
+                <h5 class="fw-bold mb-4">Riwayat Review</h5>
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead>
+                            <tr>
+                                <th>Reviewer</th>
+                                <th>Level</th>
+                                <th>Keputusan</th>
+                                <th>Catatan</th>
+                                <th>Waktu</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for review in reviews %}
+                            <tr>
+                                <td class="small fw-bold">{{ review.reviewer.get_full_name|default:review.reviewer.username }}</td>
+                                <td><span class="badge bg-light text-dark">{{ review.reviewer.get_role_display }}</span></td>
+                                <td>
+                                    {% if review.status == 'approved' %}
+                                        <span class="badge bg-success">Disetujui</span>
+                                    {% elif review.status == 'revision' %}
+                                        <span class="badge bg-warning text-dark">Revisi</span>
+                                    {% else %}
+                                        <span class="badge bg-dark">Ditolak</span>
+                                    {% endif %}
+                                </td>
+                                <td class="small" style="max-width:200px;">{{ review.comments }}</td>
+                                <td class="extra-small text-muted">{{ review.created_at|date:"d M Y, H:i" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Status Card -->
+            <div class="glass-card p-4 mb-4 text-center">
+                <small class="text-muted d-block mb-2 text-uppercase fw-semibold" style="font-size:0.7rem;">Status Saat Ini</small>
+                {% if activity.status == 'draft' %}
+                    <span class="badge bg-secondary px-4 py-2 fs-6 mb-3">DRAFT</span>
+                {% elif activity.status == 'pending_kaprodi' %}
+                    <span class="badge bg-warning text-dark px-4 py-2 fs-6 mb-3">MENUNGGU KAPRODI</span>
+                {% elif activity.status == 'pending_dekan' %}
+                    <span class="badge bg-warning text-dark px-4 py-2 fs-6 mb-3">MENUNGGU DEKAN</span>
+                {% elif activity.status == 'approved' %}
+                    <span class="badge bg-success px-4 py-2 fs-6 mb-3">DISETUJUI ✓</span>
+                {% elif activity.status == 'revision' %}
+                    <span class="badge bg-danger px-4 py-2 fs-6 mb-3">PERLU REVISI</span>
+                {% elif activity.status == 'rejected' %}
+                    <span class="badge bg-dark px-4 py-2 fs-6 mb-3">DITOLAK</span>
+                {% endif %}
+
+                <!-- Progress Bar -->
+                <div class="progress mt-3" style="height: 6px;">
+                    {% if activity.status == 'draft' %}
+                        <div class="progress-bar bg-secondary" style="width: 10%"></div>
+                    {% elif activity.status == 'pending_kaprodi' %}
+                        <div class="progress-bar bg-warning" style="width: 40%"></div>
+                    {% elif activity.status == 'pending_dekan' %}
+                        <div class="progress-bar bg-warning" style="width: 70%"></div>
+                    {% elif activity.status == 'approved' %}
+                        <div class="progress-bar bg-success" style="width: 100%"></div>
+                    {% elif activity.status == 'revision' %}
+                        <div class="progress-bar bg-danger" style="width: 30%"></div>
+                    {% elif activity.status == 'rejected' %}
+                        <div class="progress-bar bg-dark" style="width: 100%"></div>
+                    {% endif %}
+                </div>
+                <div class="mt-3">
+                    <small class="text-muted d-block">Terakhir Diperbarui</small>
+                    <p class="fw-bold mb-0">{{ activity.updated_at|date:"d M Y, H:i" }}</p>
+                </div>
+            </div>
+
+            <!-- Milestone Timeline -->
+            <div class="glass-card p-4 mb-4">
+                <h5 class="fw-bold mb-4">Timeline Proses</h5>
+                <ul class="milestone-list ps-0 position-relative">
+                    {% for ms in milestones %}
+                    <li class="d-flex gap-3 mb-4 position-relative">
+                        <div class="milestone-dot bg-primary mt-1"></div>
+                        <div>
+                            <p class="mb-0 fw-bold small">{{ ms.status }}</p>
+                            {% if ms.note %}
+                            <small class="text-muted d-block">{{ ms.note }}</small>
+                            {% endif %}
+                            <div class="extra-small text-muted mt-1">{{ ms.created_at|date:"d M Y, H:i" }}</div>
+                        </div>
+                    </li>
+                    {% empty %}
+                    <li class="text-muted small text-center py-2">Belum ada milestone.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <!-- Upload Laporan (For Dosen with approved activity) -->
+            {% if can_upload_report %}
+            <div class="glass-card p-4 mb-4" style="border-color:rgba(34,197,94,0.4)!important;">
+                <h5 class="fw-bold mb-3"><i class="fas fa-file-upload me-2 text-success"></i>Upload Laporan Akhir</h5>
+                {% if activity.report_file %}
+                <div class="alert alert-success py-2 small mb-3">
+                    <i class="fas fa-check-circle me-1"></i> Laporan sudah diunggah.
+                    <a href="{{ activity.report_file.url }}" target="_blank" class="ms-2 fw-bold">Lihat</a>
+                </div>
+                {% endif %}
+                {% if activity.output_link %}
+                <div class="alert alert-info py-2 small mb-3">
+                    <i class="fas fa-link me-1"></i> <a href="{{ activity.output_link }}" target="_blank">Link Output</a>
+                </div>
+                {% endif %}
+                <form action="{% url 'activity_submit_report' activity.id %}" method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {% if report_form %}
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">File Laporan (PDF)</label>
+                        {{ report_form.report_file }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Link Output / Publikasi</label>
+                        {{ report_form.output_link }}
+                    </div>
+                    {% endif %}
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-cloud-upload-alt me-2"></i>{% if activity.report_file %}Perbarui Laporan{% else %}Unggah Laporan{% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+            {% endif %}
+
+            <!-- Review Action Form (For Kaprodi/Dekan) -->
+            {% if show_review_form %}
+            <div class="glass-card p-4" style="border-color:rgba(0,128,128,0.45)!important;">
+                <h5 class="fw-bold mb-3"><i class="fas fa-gavel me-2 text-primary"></i>Berikan Review</h5>
+                <form action="{% url 'activity_review' activity.id %}" method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Keputusan Review</label>
+                        <div class="d-flex flex-column gap-2">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="status" id="r_approved" value="approved" required>
+                                <label class="form-check-label text-success fw-semibold" for="r_approved">
+                                    <i class="fas fa-check-circle me-1"></i> Setuju / Approve
+                                </label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="status" id="r_revision" value="revision">
+                                <label class="form-check-label text-warning fw-semibold" for="r_revision">
+                                    <i class="fas fa-edit me-1"></i> Minta Revisi
+                                </label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="status" id="r_rejected" value="rejected">
+                                <label class="form-check-label text-danger fw-semibold" for="r_rejected">
+                                    <i class="fas fa-times-circle me-1"></i> Tolak
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Catatan / Komentar <span class="text-danger">*</span></label>
+                        <textarea name="comments" class="form-control" rows="3" placeholder="Berikan alasan atau arahan revisi..." required></textarea>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane me-2"></i>Simpan Review
+                        </button>
+                    </div>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .milestone-list { list-style: none; }
+    .milestone-list li:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        left: 6px;
+        top: 20px;
+        bottom: -20px;
+        width: 1px;
+        background: rgba(0,180,180,0.25);
+    }
+    .milestone-dot {
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        min-width: 13px;
+        z-index: 2;
+        background: var(--tosca) !important;
+        box-shadow: 0 0 8px rgba(0,128,128,0.5);
+    }
+    .extra-small { font-size: 0.75rem; }
+    .progress { background: rgba(255,255,255,0.06); }
+    .form-check-input { background-color: rgba(255,255,255,0.07); border-color: rgba(0,128,128,0.35); }
+    .form-check-input:checked { background-color: var(--tosca); border-color: var(--tosca); }
+    .form-check-label { color: var(--text-muted); }
+</style>
+{% endblock %}

@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Daftar Kegiatan{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-0">{% if user.role == 'dosen' %}Kegiatan Saya{% else %}Antrian Approval{% endif %}</h2>
+            <p class="text-muted mb-0">Kelola dan pantau semua usulan kegiatan LITABDIMAS.</p>
+        </div>
+        <div class="d-flex gap-2">
+            {% if user.role == 'dosen' %}
+            <a href="{% url 'activity_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Usulan Baru
+            </a>
+            {% endif %}
+            {% if user.role == 'admin' %}
+            <a href="{% url 'export_activities_csv' %}" class="btn btn-success">
+                <i class="fas fa-file-csv me-2"></i>Export CSV
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Filter & Search -->
+    <div class="glass-card p-3 mb-4">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-12 col-md-5">
+                <label class="form-label small fw-semibold mb-1">Cari Judul</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light"><i class="fas fa-search text-muted"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="Ketik judul kegiatan..." value="{{ search_query }}">
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label small fw-semibold mb-1">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">Semua Status</option>
+                    {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small fw-semibold mb-1">Kategori</label>
+                <select name="category" class="form-select">
+                    <option value="">Semua</option>
+                    {% for value, label in category_choices %}
+                    <option value="{{ value }}" {% if category_filter == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-12 col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-grow-1">
+                    <i class="fas fa-filter me-1"></i>Filter
+                </button>
+                {% if search_query or status_filter or category_filter %}
+                <a href="{% url 'activity_list' %}" class="btn btn-outline-secondary" title="Reset">
+                    <i class="fas fa-times"></i>
+                </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- Table -->
+    <div class="glass-card p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <span class="small text-muted">
+                Menampilkan <strong>{{ page_obj.start_index }}–{{ page_obj.end_index }}</strong>
+                dari <strong>{{ page_obj.paginator.count }}</strong> kegiatan
+            </span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Judul Kegiatan</th>
+                        {% if user.role != 'dosen' %}<th>Dosen</th>{% endif %}
+                        <th>Kategori</th>
+                        <th>Dana</th>
+                        <th>Status</th>
+                        <th>Diperbarui</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for activity in page_obj %}
+                    <tr>
+                        <td class="text-muted small">{{ forloop.counter0|add:page_obj.start_index }}</td>
+                        <td class="fw-semibold" style="max-width:220px;">
+                            <span class="d-block text-truncate" title="{{ activity.title }}">{{ activity.title }}</span>
+                        </td>
+                        {% if user.role != 'dosen' %}
+                        <td class="small">{{ activity.dosen.get_full_name|default:activity.dosen.username }}</td>
+                        {% endif %}
+                        <td>
+                            <span class="badge bg-light text-dark">{{ activity.get_category_display }}</span>
+                        </td>
+                        <td class="small text-nowrap">Rp {{ activity.dana|floatformat:0|intcomma }}</td>
+                        <td>
+                            {% if activity.status == 'draft' %}<span class="badge bg-secondary">Draft</span>
+                            {% elif activity.status == 'pending_kaprodi' %}<span class="badge bg-warning text-dark">L1: Kaprodi</span>
+                            {% elif activity.status == 'pending_dekan' %}<span class="badge bg-warning text-dark">L2: Dekan</span>
+                            {% elif activity.status == 'approved' %}<span class="badge bg-success">Disetujui</span>
+                            {% elif activity.status == 'revision' %}<span class="badge bg-danger">Revisi</span>
+                            {% elif activity.status == 'rejected' %}<span class="badge bg-dark">Ditolak</span>
+                            {% endif %}
+                        </td>
+                        <td class="small text-muted text-nowrap">{{ activity.updated_at|date:"d M Y" }}</td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <a href="{% url 'activity_detail' activity.id %}" class="btn btn-sm btn-light" title="Lihat Detail">
+                                    <i class="fas fa-eye text-primary"></i>
+                                </a>
+                                {% if user.role == 'dosen' and activity.status in 'draft,revision' %}
+                                <a href="{% url 'activity_edit' activity.id %}" class="btn btn-sm btn-warning" title="Edit">
+                                    <i class="fas fa-edit text-white"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-5">
+                            <i class="fas fa-folder-open fa-3x mb-3 d-block opacity-25"></i>
+                            Tidak ada kegiatan yang sesuai filter.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <nav class="mt-3 d-flex justify-content-center">
+            <ul class="pagination pagination-sm mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ search_query }}&status={{ status_filter }}&category={{ category_filter }}">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}&q={{ search_query }}&status={{ status_filter }}&category={{ category_filter }}">{{ num }}</a>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ search_query }}&status={{ status_filter }}&category={{ category_filter }}">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

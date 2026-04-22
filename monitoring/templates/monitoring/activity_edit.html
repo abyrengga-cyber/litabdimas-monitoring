@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Edit Usulan – {{ activity.title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-0">Edit Usulan</h2>
+            <p class="text-muted mb-0">
+                {% if activity.status == 'revision' %}
+                <span class="badge bg-danger me-2">Perlu Revisi</span> Lakukan perubahan sesuai catatan reviewer.
+                {% else %}
+                <span class="badge bg-secondary me-2">Draft</span> Perbarui dan lengkapi data usulan Anda.
+                {% endif %}
+            </p>
+        </div>
+        <a href="{% url 'activity_detail' activity.id %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i> Kembali
+        </a>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="glass-card p-4">
+                <form method="post" enctype="multipart/form-data" id="editForm">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            {{ form.title|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.category|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="dana_formatted" class="form-label fw-semibold">Dana Usulan <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light fw-bold">Rp</span>
+                                <input type="text" id="dana_formatted" class="form-control" placeholder="0" autocomplete="off" value="{{ activity.dana|floatformat:0 }}">
+                                <input type="hidden" name="dana" id="{{ form.dana.auto_id }}" value="{{ activity.dana }}">
+                            </div>
+                            {% if form.dana.errors %}
+                                <div class="text-danger small mt-1">{{ form.dana.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-12">
+                            {{ form.description|as_crispy_field }}
+                        </div>
+                        <div class="col-md-12">
+                            {% if activity.proposal_file %}
+                            <div class="alert alert-info d-flex align-items-center gap-2 py-2 mb-2">
+                                <i class="fas fa-file-pdf text-danger"></i>
+                                <span class="small">Proposal saat ini: <strong>{{ activity.proposal_file.name|cut:"proposals/" }}</strong></span>
+                                <a href="{{ activity.proposal_file.url }}" target="_blank" class="btn btn-sm btn-outline-primary ms-auto">
+                                    <i class="fas fa-eye me-1"></i> Lihat
+                                </a>
+                            </div>
+                            {% endif %}
+                            <div class="upload-box p-3 border rounded-3 bg-light">
+                                <label class="form-label d-block fw-semibold">
+                                    <i class="fas fa-file-pdf me-2 text-danger"></i> Ganti Proposal (opsional)
+                                </label>
+                                <small class="text-muted d-block mb-2">Biarkan kosong jika tidak ingin mengganti proposal. Format PDF, maks. 5MB.</small>
+                                {{ form.proposal_file }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                        <button type="submit" name="status" value="draft" class="btn btn-light px-4">
+                            <i class="fas fa-save me-2"></i>Simpan Draft
+                        </button>
+                        <button type="submit" name="status" value="pending_kaprodi" class="btn btn-primary px-4">
+                            <i class="fas fa-paper-plane me-2"></i>Kirim Ulang
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            {% if activity.status == 'revision' %}
+            <div class="glass-card p-4 mb-3 border-danger border-2">
+                <h6 class="fw-bold text-danger mb-3"><i class="fas fa-exclamation-triangle me-2"></i>Catatan Revisi</h6>
+                {% for review in activity.reviews.all %}
+                <div class="mb-3 p-2 bg-light rounded">
+                    <div class="small fw-bold text-muted">{{ review.reviewer.get_full_name }} – {{ review.created_at|date:"d M Y" }}</div>
+                    <p class="mb-0 small">{{ review.comments }}</p>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            <div class="glass-card p-4">
+                <h5 class="fw-bold mb-3"><i class="fas fa-info-circle me-2 text-primary"></i> Panduan Revisi</h5>
+                <ul class="small text-muted ps-3">
+                    <li class="mb-2">Perhatikan catatan revisi dari reviewer di atas.</li>
+                    <li class="mb-2">Sesuaikan deskripsi atau nominal dana jika diminta.</li>
+                    <li class="mb-2">Unggah proposal baru jika ada perubahan isi.</li>
+                    <li class="mb-2">Klik <strong>Kirim Ulang</strong> setelah perbaikan selesai.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const formattedInput = document.getElementById('dana_formatted');
+    const hiddenInput = document.getElementById('{{ form.dana.auto_id }}');
+
+    // Format initial value
+    if (formattedInput && hiddenInput && formattedInput.value) {
+        let raw = formattedInput.value.replace(/\D/g, '');
+        hiddenInput.value = raw;
+        formattedInput.value = formatRupiah(raw);
+    }
+
+    if (formattedInput && hiddenInput) {
+        formattedInput.addEventListener('input', function () {
+            let value = this.value.replace(/\D/g, '');
+            hiddenInput.value = value;
+            this.value = value ? formatRupiah(value) : '';
+        });
+    }
+
+    function formatRupiah(angka) {
+        var num = angka.toString();
+        var sisa = num.length % 3;
+        var result = num.substr(0, sisa);
+        var ribuan = num.substr(sisa).match(/\d{3}/g);
+        if (ribuan) {
+            result += (sisa ? '.' : '') + ribuan.join('.');
+        }
+        return result;
+    }
+});
+</script>
+{% endblock %}

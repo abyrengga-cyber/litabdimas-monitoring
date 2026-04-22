@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Usulan Baru – LITABDIMAS{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-0">Usulan LITABDIMAS Baru</h2>
+            <p class="text-muted mb-0">Lengkapi formulir di bawah untuk mengajukan usulan baru.</p>
+        </div>
+        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i> Kembali
+        </a>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="glass-card p-4">
+                <form method="post" enctype="multipart/form-data" id="usulanForm">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            {{ form.title|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.category|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="dana_formatted" class="form-label fw-semibold">Dana Usulan <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light fw-bold">Rp</span>
+                                <input type="text" id="dana_formatted" class="form-control" placeholder="0" autocomplete="off">
+                                <input type="hidden" name="dana" id="{{ form.dana.auto_id }}">
+                            </div>
+                            {% if form.dana.errors %}
+                                <div class="text-danger small mt-1">{{ form.dana.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-12">
+                            {{ form.description|as_crispy_field }}
+                        </div>
+                        <div class="col-md-12">
+                            <div class="upload-box p-3 border rounded-3 bg-light mb-2">
+                                <label class="form-label d-block fw-semibold">
+                                    <i class="fas fa-file-pdf me-2 text-danger"></i> Unggah Proposal <span class="text-danger">*</span>
+                                </label>
+                                <small class="text-muted d-block mb-2">Format PDF, maksimal 5MB.</small>
+                                {{ form.proposal_file }}
+                            </div>
+                            {% if form.proposal_file.errors %}
+                                <div class="text-danger small">{{ form.proposal_file.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                        <button type="submit" name="status" value="draft" class="btn btn-light px-4">
+                            <i class="fas fa-save me-2"></i>Simpan Draft
+                        </button>
+                        <button type="submit" name="status" value="pending_kaprodi" class="btn btn-primary px-4">
+                            <i class="fas fa-paper-plane me-2"></i>Kirim Usulan
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="glass-card p-4">
+                <h5 class="fw-bold mb-3"><i class="fas fa-info-circle me-2 text-primary"></i> Panduan Pengisian</h5>
+                <ul class="small text-muted ps-3">
+                    <li class="mb-2">Pastikan judul usulan sesuai dengan rencana kegiatan.</li>
+                    <li class="mb-2">Pilih kategori yang sesuai (Penelitian atau Pengabdian).</li>
+                    <li class="mb-2">Nominal dana harus realistis sesuai RAB yang dilampirkan dalam PDF.</li>
+                    <li class="mb-2">Proposal PDF harus mengikuti format standar LPPM.</li>
+                    <li class="mb-2"><strong>Simpan Draft</strong> untuk menyimpan dan melanjutkan nanti.</li>
+                    <li class="mb-2"><strong>Kirim Usulan</strong> jika sudah siap untuk direview.</li>
+                </ul>
+                <hr>
+                <div class="p-3 rounded-3 bg-light">
+                    <h6 class="fw-bold text-warning mb-2"><i class="fas fa-stream me-2"></i>Alur Persetujuan</h6>
+                    <div class="d-flex flex-column gap-1 small">
+                        <div class="d-flex align-items-center gap-2"><span class="badge bg-primary rounded-pill">1</span> Dosen → Kirim Usulan</div>
+                        <div class="d-flex align-items-center gap-2"><span class="badge bg-warning text-dark rounded-pill">2</span> Review Kaprodi</div>
+                        <div class="d-flex align-items-center gap-2"><span class="badge bg-warning text-dark rounded-pill">3</span> Review Dekan</div>
+                        <div class="d-flex align-items-center gap-2"><span class="badge bg-success rounded-pill">4</span> Disetujui</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const formattedInput = document.getElementById('dana_formatted');
+    const hiddenInput = document.getElementById('{{ form.dana.auto_id }}');
+
+    if (formattedInput && hiddenInput) {
+        formattedInput.addEventListener('input', function () {
+            let value = this.value.replace(/\D/g, '');
+            hiddenInput.value = value;
+            this.value = value ? formatRupiah(value) : '';
+        });
+    }
+
+    function formatRupiah(angka) {
+        var num = angka.toString();
+        var sisa = num.length % 3;
+        var result = num.substr(0, sisa);
+        var ribuan = num.substr(sisa).match(/\d{3}/g);
+        if (ribuan) {
+            result += (sisa ? '.' : '') + ribuan.join('.');
+        }
+        return result;
+    }
+});
+</script>
+{% endblock %}

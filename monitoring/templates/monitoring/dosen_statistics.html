@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Statistik Dosen{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-0">Statistik Dosen</h2>
+            <p class="text-muted">
+                {% if user.role == 'kaprodi' %}
+                    Program Studi: {{ user.prodi|default:"-" }}
+                {% elif user.role == 'dekan' %}
+                    Fakultas: {{ user.fakultas|default:"-" }}
+                {% else %}
+                    Semua Data Institusi
+                {% endif %}
+            </p>
+        </div>
+    </div>
+
+    <div class="glass-card p-4">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Nama Dosen</th>
+                        <th>NIDN</th>
+                        <th class="text-center">Total Penelitian</th>
+                        <th class="text-center">Total Pengabdian</th>
+                        <th class="text-end">Total Biaya Usulan</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for dosen in dosen_stats %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td class="fw-bold">
+                            <a href="{% url 'dosen_detail_statistics' dosen.id %}" class="text-decoration-none text-primary">
+                                {{ dosen.get_full_name|default:dosen.username }}
+                                <i class="fas fa-external-link-alt ms-1 small text-muted px-1" style="font-size: 0.7em;"></i>
+                            </a>
+                        </td>
+                        <td>{{ dosen.nidn|default:"-" }}</td>
+                        <td class="text-center">
+                            <span class="badge bg-primary rounded-pill px-3">{{ dosen.total_penelitian }}</span>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-success rounded-pill px-3">{{ dosen.total_pengabdian }}</span>
+                        </td>
+                        <td class="text-end fw-bold text-dark">Rp {{ dosen.total_dana|intcomma }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-5">
+                            <i class="fas fa-users-slash fa-3x mb-3 d-block opacity-25"></i>
+                            Belum ada data dosen di wilayah Anda.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

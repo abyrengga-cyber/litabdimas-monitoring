@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}Semua Notifikasi{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-0">Pusat Notifikasi</h2>
+            <p class="text-muted mb-0">Riwayat semua aktivitas dan pesan masuk.</p>
+        </div>
+        <form action="{% url 'notification_read_all' %}" method="post" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-primary btn-sm">
+                <i class="fas fa-check-double me-1"></i>Tandai Semua Dibaca
+            </button>
+        </form>
+    </div>
+
+    <div class="glass-card p-0 overflow-hidden">
+        <div class="list-group list-group-flush">
+        {% for notif in page_obj %}
+            <div class="list-group-item list-group-item-action p-4 {% if not notif.is_read %}notif-unread{% else %}notif-read{% endif %}">
+                <div class="d-flex w-100 justify-content-between align-items-center">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            {% if not notif.is_read %}
+                            <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--tosca-light);box-shadow:0 0 6px rgba(0,179,179,0.6);"></span>
+                            {% endif %}
+                            <small class="text-muted"><i class="far fa-clock me-1"></i>{{ notif.created_at|date:"d M Y, H:i" }}</small>
+                        </div>
+                        <p class="mb-0 fw-semibold {% if not notif.is_read %}text-main-notif{% else %}text-muted{% endif %}">
+                            {{ notif.message }}
+                        </p>
+                    </div>
+                    {% if not notif.is_read %}
+                    <form action="{% url 'notification_read' notif.id %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-light py-1 px-2" title="Tandai dibaca">
+                            <i class="fas fa-check text-primary"></i>
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center py-5">
+                <i class="far fa-bell fa-3x text-muted mb-3 opacity-25"></i>
+                <p class="text-muted">Tidak ada notifikasi.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <nav class="mt-4 d-flex justify-content-center">
+        <ul class="pagination pagination-sm mb-0">
+            {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}"><i class="fas fa-chevron-left"></i></a></li>
+            {% endif %}
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                {% endif %}
+            {% endfor %}
+            {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}"><i class="fas fa-chevron-right"></i></a></li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+
+<style>
+    .list-group-item {
+        background: transparent;
+        border-color: rgba(0,128,128,0.12);
+        color: var(--text-main);
+    }
+    .list-group-item-action:hover {
+        background: rgba(0,128,128,0.07) !important;
+        color: var(--text-main);
+    }
+    .notif-unread {
+        background: rgba(0,128,128,0.06) !important;
+        border-left: 3px solid var(--tosca-light) !important;
+    }
+    .notif-read { opacity: 0.6; }
+    .text-main-notif { color: var(--text-main) !important; }
+</style>
+{% endblock %}

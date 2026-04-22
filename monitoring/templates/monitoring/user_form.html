@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ title }} | LITABDIMAS{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="mb-4">
+        <a href="{% url 'user_list' %}" class="btn btn-sm btn-outline-secondary mb-3">
+            <i class="fas fa-arrow-left me-1"></i>Kembali ke Daftar
+        </a>
+        <h2 class="mb-0">{{ title }}</h2>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="glass-card p-4">
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form|crispy }}
+                    <hr class="my-4">
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{% url 'user_list' %}" class="btn btn-light">Batal</a>
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="fas fa-save me-2"></i>Simpan
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="alert alert-info py-2 small mt-3">
+                <i class="fas fa-info-circle me-1"></i> Jangan lupa untuk mengisi password jika ini adalah pengguna baru. Jika Anda mengedit pengguna dan tidak ingin mengubah password, kosongkan field password.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
